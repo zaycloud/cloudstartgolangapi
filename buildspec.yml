@@ -3,6 +3,6 @@ version: 0.2
 phases:
   build:
     commands:
-      - docker build -t git.systementor.se/Zayn/stensax0424 .
+      - docker build -t git.systementor.se/zayn/stensax0424 .
       - docker login -u Zayn -p hejsan123 https://git.systementor.se
-      - docker push git.systementor.se/Zayn/stensax0424 
+      - docker push git.systementor.se/zayn/stensax0424 
