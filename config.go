@@ -33,7 +33,6 @@ type Config struct {
 func readConfig(cfg *Config) {
 	readFile(cfg)
 	readEnv(cfg)
-	fmt.Printf("%+v", cfg)
 }
 
 func readFile(cfg *Config) {
@@ -43,12 +42,23 @@ func readFile(cfg *Config) {
 		fileName = "config" + s + ".yml"
 	}
 
-	f, _ := os.Open(fileName)
+	f, err := os.Open(fileName)
+	if err != nil {
+		fmt.Printf("Error opening config file: %v\n", err)
+		return
+	}
 	defer f.Close()
+
 	decoder := yaml.NewDecoder(f)
-	decoder.Decode(cfg)
+	err = decoder.Decode(cfg)
+	if err != nil {
+		fmt.Printf("Error decoding config file: %v\n", err)
+	}
 }
 
 func readEnv(cfg *Config) {
-	envconfig.Process("", cfg)
+	err := envconfig.Process("", cfg)
+	if err != nil {
+		fmt.Printf("Error processing environment variables: %v\n", err)
+	}
 }

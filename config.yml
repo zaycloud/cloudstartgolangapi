@@ -3,7 +3,7 @@ database:
   # antingen denna
   file: "sqlite.sqlite" 
   # eller alla dessa (om file är blankt)
-  sql-user: ""            #
+  sql-user: ""            
   sql-pass: ""
   sql-server: "127.0.0.1"
   sql-database: "SupportSystem"
