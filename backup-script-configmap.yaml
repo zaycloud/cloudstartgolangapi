@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-script
+  namespace: yatest
+data:
+  backup.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Starting backup of database $MYSQL_DATABASE..."
+
+    # Create backup filename with timestamp
+    BACKUP_FILE="/tmp/backup-$(date +%Y%m%d-%H%M%S).sql"
+
+    # Perform MySQL backup
+    mysqldump -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE > $BACKUP_FILE
+
+    # Compress the backup file
+    gzip $BACKUP_FILE
+    BACKUP_FILE="${BACKUP_FILE}.gz"
+
+    echo "Backup completed, uploading to S3..."
+
+    # Upload to Backblaze S3
+    aws s3 cp $BACKUP_FILE s3://$S3_BUCKET/$(basename $BACKUP_FILE) \
+      --endpoint-url $S3_ENDPOINT
+
+    # Clean up local files
+    rm $BACKUP_FILE
+
+    echo "Backup process completed successfully" 
