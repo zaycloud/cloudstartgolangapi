@@ -1,17 +1,25 @@
-#!/bin/bash
+#!/bin/sh
+set -e
 
-# Sätt datum för backup-filen
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="backup_${DATE}.sql"
+echo "Starting backup of database $MYSQL_DATABASE..."
 
-# Gör backup av MySQL-databasen
+# Create backup filename with timestamp
+BACKUP_FILE="/backup/backup-$(date +%Y%m%d-%H%M%S).sql"
+
+# Perform MySQL backup
 mysqldump -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE > $BACKUP_FILE
 
-# Komprimera backup-filen
+# Compress the backup file
 gzip $BACKUP_FILE
+BACKUP_FILE="${BACKUP_FILE}.gz"
 
-# Ladda upp till Backblaze S3
-aws s3 cp ${BACKUP_FILE}.gz s3://$S3_BUCKET/backups/ --endpoint-url $S3_ENDPOINT
+echo "Configuring mc..."
+mc alias set b2 "$S3_ENDPOINT" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
 
-# Ta bort lokala filer
-rm ${BACKUP_FILE}.gz 
+echo "Uploading to Backblaze S3..."
+mc cp "$BACKUP_FILE" "b2/$S3_BUCKET/$(basename $BACKUP_FILE)"
+
+# Clean up local files
+rm $BACKUP_FILE
+
+echo "Backup process completed successfully" 

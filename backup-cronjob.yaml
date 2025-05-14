@@ -11,15 +11,22 @@ spec:
         spec:
           containers:
           - name: backup
-            image: ubuntu:22.04
+            image: alpine:3.19
             command:
-            - /bin/bash
+            - /bin/sh
             - -c
             - |
-              apt-get update && \
-              apt-get install -y mysql-client python3-pip && \
-              pip3 install awscli && \
-              /backup/backup.sh
+              set -e
+              apk add --no-cache mysql-client ca-certificates wget && \
+              wget -O /usr/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc && \
+              chmod +x /usr/bin/mc && \
+              BACKUP_FILE="/backup-$(date +%Y%m%d-%H%M%S).sql" && \
+              mysqldump -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE > $BACKUP_FILE && \
+              gzip $BACKUP_FILE && \
+              BACKUP_FILE="$BACKUP_FILE.gz" && \
+              mc alias set b2 "$S3_ENDPOINT" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" && \
+              mc cp "$BACKUP_FILE" "b2/$S3_BUCKET/$(basename $BACKUP_FILE)" && \
+              rm $BACKUP_FILE
             env:
             - name: MYSQL_HOST
               value: mysql
@@ -55,14 +62,4 @@ spec:
                 secretKeyRef:
                   name: backup-secrets
                   key: S3_ENDPOINT
-            - name: AWS_S3_DISABLE_CHECKSUMS
-              value: "1"
-            volumeMounts:
-            - name: backup-script
-              mountPath: /backup
-          volumes:
-          - name: backup-script
-            configMap:
-              name: backup-script
-              defaultMode: 0755
           restartPolicy: OnFailure 
